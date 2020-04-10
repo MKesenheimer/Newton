@@ -3,11 +3,12 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-Object::Object(float x, float y, float hsize, float vsize, float angle, float spin) {
+Object::Object(float x, float y, float vx, float vy, float size, float angle, float spin) {
   x_ = x;
   y_ = y;
-  hsize_ = hsize;
-  vsize_ = vsize;
+  vx_ = vx;
+  vy_ = vy;
+  size_ = size;
   old_phi_ = 0.0;
   phi_ = angle;
   spin_ = spin;
@@ -47,16 +48,16 @@ float Object::spin() {
   return spin_;
 }
 
-float Object::hsize() {
-  return hsize_;
-}
-
-float Object::vsize() {
-  return vsize_;
+float Object::size() {
+  return size_;
 }
 
 int Object::npoints() {
   return npoints_;
+}
+
+void Object::set_size(float size) {
+  size_ = size;
 }
 
 void Object::set_pos(float x, float y) {
@@ -103,8 +104,8 @@ void Object::new_point(float x, float y, bool iscol) {
     points.push_back(point());
     points[npoints_].index = npoints_;
     //move all object points back into the world coordinate system
-    points[npoints_].x = hsize_*x;
-    points[npoints_].y = vsize_*y;
+    points[npoints_].x = size_*x;
+    points[npoints_].y = size_*y;
     points[npoints_].iscollidable = iscol;
     npoints_++;
   }
@@ -138,8 +139,8 @@ bool Object::is_collidable(int n) {
 void Object::modify_point(float x, float y, int n) {
   for (int i=0; i<=n; i++) {
     if (points[i].index == n) {
-      points[i].x = hsize_*x;
-      points[i].y = vsize_*y;
+      points[i].x = size_*x;
+      points[i].y = size_*y;
     }
   }
 }

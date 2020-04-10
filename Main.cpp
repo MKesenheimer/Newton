@@ -6,16 +6,14 @@
 
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include <SDL2/SDL.h>
-#include <SDL2_image/SDL_image.h>
-#include <SDL2_gfx/SDL2_gfxPrimitives.h>
+#include <SDL.h>
+#include <SDL_image.h>
+#include <SDL2_gfxPrimitives.h>
 
 #include "SDL2_own.h"
 #include "Main.h"
 #include "Timer.h"
-#include "Lander.h"
-#include "Part.h"
-#include "Moon.h"
+#include "Star.h"
 #include "cleanup.h"
 #include "Functions.h"
 #include "Collision.h"
@@ -25,6 +23,7 @@ using namespace::std;
 const int SCREEN_WIDTH  = 900;
 const int SCREEN_HEIGHT = 800;
 const int FRAMES_PER_SECOND = 20;			//Fps auf 20 festlegen
+const int NSTARS = 500;
 
 //Log an SDL error with some error message to the output stream of our choice
 void logSDLError(std::ostream &os, const std::string &msg){
@@ -37,35 +36,6 @@ void logSDLDebug(std::ostream &os, const std::string &msg){
 }
 void logSDLDebug(std::ostream &os, const int msg){
 	os << " [DEBUG]: " << msg << std::endl;
-}
-
-//Loads an image into a texture on the rendering device
-SDL_Texture* loadTexture(const std::string &file, SDL_Renderer *ren){
-	SDL_Texture *texture = IMG_LoadTexture(ren, file.c_str());
-	if (texture == NULL){
-		logSDLError(std::cout, "LoadTexture");
-	}
-	return texture;
-}
-
-//Draw an SDL_Texture to an SDL_Renderer at position x, y, with some desired
-//width and height
-void renderTexture(SDL_Texture *tex, SDL_Renderer *ren, int x, int y, int w, int h){
-	//Setup the destination rectangle to be at the position we want
-	SDL_Rect dst;
-	dst.x = x;
-	dst.y = y;
-	dst.w = w;
-	dst.h = h;
-	SDL_RenderCopy(ren, tex, NULL, &dst);
-}
-
-//Draw an SDL_Texture to an SDL_Renderer at position x, y, preserving
-//the texture's width and height
-void renderTexture(SDL_Texture *tex, SDL_Renderer *ren, int x, int y){
-	int w, h;
-	SDL_QueryTexture(tex, NULL, NULL, &w, &h);
-	renderTexture(tex, ren, x, y, w, h);
 }
 
 // Draw an Object to a SDL_Rederer
@@ -85,25 +55,38 @@ void drawObject(Object *object, SDL_Renderer *ren) {
     }
 }
 
+// Draw star to a SDL_Rederer
+void drawStar(Object *object, SDL_Renderer *ren) {
+    std::vector<float> temp;
+    temp = object->get_point(1);
+    int size = (int)object->size();
+    for(int i=1; i<object->npoints(); i++) {
+        temp = object->get_point(i);
+        int xp = (int)(temp[0]);
+        int yp = (int)(temp[1]);
+        filledEllipseRGBA(ren, xp, yp, size, size, 0, 0, 0, 255);
+    }
+}
+
 int main( int argc, char* args[] ) {
 
 	int frame = 0; //take records of frame number
 	bool cap = true; //Framecap an oder ausschalten
-    
+
     //Timer zum festlegen der FPS
 	Timer fps;
     //Timer zum errechnen der weltweit vergangenen Zeit
 	Timer worldtime;
     worldtime.start();
-    
+
     //calculate the small time between two frames in ms
     int oldTime = 0;
     int newTime = 0;
-    int dt = 0;
+    int dt = 1;
 
     //initialize random generator
     seed(time(NULL));
-    
+
 	//Start up SDL and make sure it went ok
 	if (SDL_Init(SDL_INIT_VIDEO) != 0){
 		logSDLError(std::cout, "SDL_Init");
@@ -112,7 +95,7 @@ int main( int argc, char* args[] ) {
 
 	//Setup our window and renderer, this time let's put our window in the center
 	//of the screen
-	SDL_Window *window = SDL_CreateWindow("Moonlander", SDL_WINDOWPOS_CENTERED,
+	SDL_Window *window = SDL_CreateWindow("Newton", SDL_WINDOWPOS_CENTERED,
 			SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 	if (window == NULL){
 		logSDLError(std::cout, "CreateWindow");
@@ -128,51 +111,35 @@ int main( int argc, char* args[] ) {
 	}
 
     //generate new objects
-    Lander lander(SCREEN_WIDTH/8,50,2,2,-M_PI/2,0);
-    lander.set_v(1.0,0.0);
-    //debug
-    //Lander lander(SCREEN_WIDTH/2,550,2,2,-M_PI/2);
-    //lander.set_v(0.0,2.0);
-    Moon moon(SCREEN_WIDTH/2,3*SCREEN_HEIGHT,2*SCREEN_WIDTH,2*SCREEN_WIDTH,0);
-    std::vector<Part> parts;
-    const int nparts = 35;
-    for (int i = 0; i < nparts; i++) {
-      parts.push_back(Part(0,0,frand(5,15),frand(5,15),frand(0,2*M_PI),frand(-0.5,0.5)));
-      parts[i].set_v(0.0,0.0);
+    std::vector<Star> stars;
+    int nstars = NSTARS;
+    for (int i = 0; i < nstars; i++) {
+      stars.push_back(Star(frand(0,SCREEN_WIDTH),frand(0,SCREEN_HEIGHT),frand(-1,1),frand(-1,1),frand(1,2)));
     }
 
     //collision detection
     Collision coll;
-    
-	//game mechanics
-	bool quit = false;
-    bool firstcontact = true;
-    float x1 = 0, y1 = 0; //position of first contact
-    float x0, y0; //moon position
-    float x, y; //lander position
-    float vx, vy; //lander velocity
-    float r; //distance moon lander
-    bool destroyed = false; //if the lander is destroyed
-    bool collided = false;
-    bool initparts = true;
+
+    //simulation control
+    bool quit = false;
 
     //constants for integration
     //newtons constant of gravity
-    float gamma = 1e3;
-    //energy dissipation during flight (for example air drag)
-    float alpha = 0.0; //1e-4
-    //energy dissipation during landing
-    float beta = 0.0; //1e-3
-    //strength of stilt springs
-    float omega = 1e-3;
-    
-	//Our event structure
+    float gamma = 6.67408e-11;
+    // mass scaling factor
+    float rho = 1e10;
+    // critical velocity when a collision leads to a merge
+    float vcrit = 100.0;
+    bool collision = false;
+    float mtot = 0.0, mtot_save = 0.0;
+
+	//our event structure
 	SDL_Event e;
-    
+
 	while (!quit){
         //start the fps timer
         fps.start();
-        
+
 		//Read any events that occured, for now we'll just quit if any event occurs
 		while (SDL_PollEvent(&e)){
 			//If user closes the window
@@ -187,168 +154,170 @@ int main( int argc, char* args[] ) {
 				}
 			}
 		}
-        
-        // handle keyboard inputs (no lags and delays!)
-        const Uint8* keystate = SDL_GetKeyboardState(NULL);
-        if(keystate[SDL_SCANCODE_UP]) {
-            float vxf = lander.vx() + 0.03*sin(lander.phi());
-            float vyf = lander.vy() - 0.03*cos(lander.phi());
-            lander.set_v(vxf,vyf);
-            if(lander.thrust() < 10) {
-                lander.set_thrust(lander.thrust() + 3);
-            }
-        }
-        if(!collided && keystate[SDL_SCANCODE_LEFT]) {
-            //lander.set_spin(lander.spin() - 0.01);
-            if(lander.phi() >= -M_PI) {
-                lander.set_angle(lander.phi() - 0.15);
-            }
-        }
-        if(!collided && keystate[SDL_SCANCODE_RIGHT]) {
-            //lander.set_spin(lander.spin() + 0.01);
-            if(lander.phi() <= M_PI) {
-                lander.set_angle(lander.phi() + 0.15);
-            }
-        }
-        
-        //if no key pressed, reduce thrust
-        if(lander.thrust() > 0) {
-            lander.set_thrust(lander.thrust() - 1);
-        }
-        
-        x0 = moon.x();
-        y0 = moon.y();
-        x = lander.x();
-        y = lander.y();
-        vx = lander.vx();
-        vy = lander.vy();
-        r = sqrt(pow(x-x0,2)+pow(y-y0,2));
-        float dvx,  dvy;
-        if ( r <= 2000) { //atmosphere below 2000
-            dvx = -gamma*(x-x0)/pow(r,3)*dt - fabs(alpha*vx*dt);
-            dvy = -gamma*(y-y0)/pow(r,3)*dt - fabs(alpha*vy*dt);
-        } else {
-            dvx = -gamma*(x-x0)/pow(r,3)*dt;
-            dvy = -gamma*(y-y0)/pow(r,3)*dt;
-        }
-        
-        //collision detection
-        collided = coll.check_collision(&lander,&moon);
-        if(collided) {
-            //remember point of first contact
-            if(firstcontact) {
-                x1 = x;
-                y1 = y;
-                firstcontact = false;
-                
-                //destroy the lander if velocity is to big
-                if(sqrt(pow(vx,2)+pow(vy,2)) >= 1.0) {
-                    destroyed = true;
+
+        for (int i = 0; i < nstars; i++) {
+            //mechanics
+            float xi, yi, vxi, vyi, mi;
+            xi = stars[i].x();
+            yi = stars[i].y();
+            vxi = stars[i].vx();
+            vyi = stars[i].vy();
+            mi = pow(stars[i].R(),3)*rho;
+
+            float s1 = 0., sx2 = 0., sy2 = 0.;
+            for (int j = 0; j < nstars; j++) {
+                if(i != j) {
+                    float xj, yj;
+                    xj = stars[j].x();
+                    yj = stars[j].y();
+
+                    if(xi != xj and yi != yj) {
+                        float rij, mj;
+
+                        mj = pow(stars[j].R(),3)*rho;
+                        rij = sqrt(pow(xi-xj,2.)+pow(yi-yj,2.));
+                        s1 += -gamma*mi*mj/pow(rij,3.);
+                        sx2 += +gamma*mi*mj*xj/pow(rij,3.);
+                        sy2 += +gamma*mi*mj*yj/pow(rij,3.);
+                        collision = false;
+                    } else {
+                        collision = true;
+                    }
                 }
             }
-            
-            dvx = dvx - omega*(x-x1)*dt - fabs(beta*vx*dt);
-            dvy = dvy - omega*(y-y1)*dt - fabs(beta*vy*dt);
-            
-            //stop the lander if successful landing
-            if(sqrt(pow(vx,2)+pow(vy,2)) <= 0.1 and lander.thrust() == 0) {
-                vx = 0.0;
-                vy = 0.0;
-                dvx = 0.0;
-                dvy = 0.0;
-                
-                //if the lander isn't upright, tilt it
-                //print(lander.phi());
-                if(lander.phi() > 0.4) {
-                    lander.set_spin(lander.spin() + 0.001); //fall over
-                }
-                if(lander.phi() < -0.4) {
-                    lander.set_spin(lander.spin() - 0.001); //fall over
-                }
-                if(lander.phi() < 0.4 && lander.phi() > 0) { //bring it to an upright position
-                    lander.set_spin(lander.spin() - 0.001);
-                }
-                if(lander.phi() > -0.4 && lander.phi() < 0) { //upright position
-                    lander.set_spin(lander.spin() + 0.001);
-                }
-                if(fabs(lander.phi()) > 1.7) { //destroy it
-                    destroyed = true;
-                }
-                if(fabs(lander.phi()) < 0.1) {
-                    lander.set_spin(0);
+
+            if(!collision) {
+                // Runge-Kutta 4. Ordnung
+                // löst lineare DGL der Form x'' = ww*x + bet*x' + al.
+                float wwx = s1/mi, betx = 0., alx = sx2/mi;
+                float k1[4], k2[4];
+                float vx = vxi;
+                float x = xi;
+                k1[0] = vx;
+                k2[0] = wwx*x + betx*vx + alx;
+                k1[1] = vx + 0.5*k2[0]*dt;
+                k2[1] = wwx*(x + 0.5*k1[0]*dt) + betx*(vx + 0.5*k2[0]*dt) + alx; //rho*(t+0.5*dt)+
+                k1[2] = vx + 0.5*k2[1]*dt;
+                k2[2] = wwx*(x + 0.5*k1[1]*dt) + betx*(vx + 0.5*k2[1]*dt) + alx; //rho*(t+0.5*dt)+
+                k1[3] = vx + k2[2]*dt;
+                k2[3] = wwx*(x + k1[2]*dt) + betx*(vx + k2[2]*dt) + alx; //rho*(t+dt)+
+                x  += dt*(1./6*k1[0] + 1./3*k1[1] + 1./3*k1[2] + 1./6*k1[3]);
+                vx += dt*(1./6*k2[0] + 1./3*k2[1] + 1./3*k2[2] + 1./6*k2[3]);
+                //ind->ax = ww*x+bet*vx+alx;
+
+                float wwy = s1/mi, bety = 0., aly = sy2/mi;
+                float vy = vyi;
+                float y = yi;
+                k1[0] = vy;
+                k2[0] = wwy*y + bety*vy + aly;
+                k1[1] = vy + 0.5*k2[0]*dt;
+                k2[1] = wwy*(y + 0.5*k1[0]*dt) + bety*(vy + 0.5*k2[0]*dt) + aly; //rho*(t+0.5*dt)+
+                k1[2] = vy + 0.5*k2[1]*dt;
+                k2[2] = wwy*(y + 0.5*k1[1]*dt) + bety*(vy + 0.5*k2[1]*dt) + aly; //rho*(t+0.5*dt)+
+                k1[3] = vy + k2[2]*dt;
+                k2[3] = wwy*(y + k1[2]*dt) + bety*(vy + k2[2]*dt) + aly; //rho*(t+dt)+
+                y  += dt*(1./6*k1[0] + 1./3*k1[1] + 1./3*k1[2] + 1./6*k1[3]);
+                vy += dt*(1./6*k2[0] + 1./3*k2[1] + 1./3*k2[2] + 1./6*k2[3]);
+                //ay = ww*y+bet*vy+aly;
+
+                vxi = vx;
+                vyi = vy;
+                xi = x;
+                yi = y;
+                stars[i].set_v(vxi,vyi);
+                stars[i].set_pos(xi,yi);
+            }
+
+            //collision detection
+            for (int j = i+1; j < nstars; j++) {
+                bool collision = coll.check_collision(&stars[i],&stars[j]);
+                //std::cout << collision << std::endl;
+                if(collision) {
+                    float xj = stars[j].x();
+                    float yj = stars[j].y();
+                    float vxj = stars[j].vx();
+                    float vyj = stars[j].vy();
+                    float mj = pow(stars[j].R(),3.)*rho;
+                    float vrel = pow(pow(vxi-vxj,2.)+pow(vyi-vyj,2.),.5);
+                    //std::cout << "vrel = " << vrel << std::endl;
+                    //momentum conservation
+                    if(vrel <= vcrit) {
+                        xi = (xi*mi+xj*mj)/(mi+mj);
+                        yi = (yi*mi+yj*mj)/(mi+mj);
+                        vxi = (mi*vxi + mj*vxj)/(mi+mj);
+                        vyi = (mi*vyi + mj*vyj)/(mi+mj);
+                        mi = mi + mj;
+                        stars[i].set_pos(xi,yi);
+                        stars[i].set_v(vxi,vyi);
+                        float newR = pow(pow(stars[i].R(),3.) + pow(stars[j].R(),3.),1/3.);
+                        //std::cout <<stars[i].R()<<" "<<stars[j].R()<<" "<< newR << std::endl;
+                        stars[i].set_R(newR);
+                        stars.erase(stars.begin() + j);
+                        nstars--;
+                    }
+                    collision = false;
                 }
             }
-            
-            //TODO: if the lander lands on a wall
-            
-        } else {
-            //reset variable which is used to remember the first contact
-            firstcontact = true;
-            lander.set_spin(0);
+
+            //mirrored boundaries
+            if(xi<=0) stars[i].set_pos(SCREEN_WIDTH,yi);
+            if(xi>=SCREEN_WIDTH) stars[i].set_pos(0,yi);
+            if(yi<=0) stars[i].set_pos(xi,SCREEN_HEIGHT);
+            if(yi>=SCREEN_HEIGHT) stars[i].set_pos(xi,0);
         }
-        
+
+        //check total mass
+        mtot_save = mtot;
+        mtot = 0;
+        for (int i = 0; i < nstars; i++) {
+            mtot += pow(stars[i].R(),3)*rho;
+        }
+
+        if(mtot_save != 0.0 and fabs(mtot_save-mtot)/mtot >= 0.001 ) {
+            std::cout << "Mass not conserved. Bug?" << std::endl;
+            std::cout << "mtot_save = " << mtot_save << ", mtot = " << mtot << std::endl;
+            exit(0);
+        }
+
         //Rendering
 		SDL_RenderClear(renderer);
 		//Draw the background white
         boxRGBA(renderer, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 255, 255, 255, 255);
-        
+
         //draw the surface of the moon
-        drawObject(&moon, renderer);
-        
-        if(!destroyed) {
-            //integration
-            lander.set_v(vx+dvx,vy+dvy);
-            lander.update_position(dt/50);
-            drawObject(&lander, renderer);
-    
-        } else {
-            if(initparts) {
-                    for (int i = 0; i < nparts; i++) {
-                        parts[i].set_pos(x,y);
-                        vx = frand(-10,10);
-                        vy = frand(-10,10);
-                        parts[i].set_v(vx,vy);
-                    }
-                initparts = false;
-            }
-            for (int i = 0; i < nparts; i++) {
-                parts[i].update_position(dt/50);
-                drawObject(&parts[i], renderer);
-            }
+        for (int i = 0; i < nstars; i++) {
+            //stars[i].update_position(dt/50);
+            drawStar(&stars[i], renderer);
         }
-        
-        //draw the dimensions of the objects
-        //float r_abs1 = coll.dim(&lander);
-        //float r_abs2 = coll.dim(&moon);
-        //ellipseRGBA(renderer, lander.x(), lander.y(), r_abs1, r_abs1, 0, 0, 0, 255);
-        //ellipseRGBA(renderer, moon.x(), moon.y(), r_abs2, r_abs2, 0, 0, 0, 255);
+
+        //render
 		SDL_RenderPresent(renderer);
-        
+
         // Timer related stuff
         oldTime = newTime;
         newTime = worldtime.getTicks();
         if (newTime > oldTime) {
-            dt = newTime - oldTime; // small time between two frames in ms
+            dt = (newTime - oldTime)/1000.; // small time between two frames in s
         }
         if(dt == 0) dt = 1;
-        
+
         //increment the frame number
         frame++;
         //apply the fps cap
 		if( (cap == true) && (fps.getTicks() < 1000/FRAMES_PER_SECOND) ) {
 			SDL_Delay( (1000/FRAMES_PER_SECOND) - fps.getTicks() );
 		}
-            
+
         //update the window caption
 		if( worldtime.getTicks() > 1000 ) {
 			std::stringstream caption;
-			caption << "Moonlander, aktuelle FPS: " << 1000.f*frame/worldtime.getTicks();
+			caption << "Newton, FPS = " << 1000.f*frame/worldtime.getTicks() << ", nstars = " << nstars;
             SDL_SetWindowTitle(window,caption.str().c_str());
 			worldtime.start();
             frame = 0;
 		}
 	}
-    
+
 	//Destroy the various items
 	cleanup(renderer, window);
 	IMG_Quit();

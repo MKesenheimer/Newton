@@ -6,7 +6,7 @@
 class Object {
   public:
     //the constructor
-    Object(float x, float y, float hsize = 1, float vsize = 1, float angle = 0, float spin = 0);
+    Object(float x, float y, float vx = 0, float vy = 0, float size = 1, float angle = 0, float spin = 0);
     //the destructor
     ~Object();
     
@@ -22,11 +22,12 @@ class Object {
     float phi();
     float spin();
     //gives the horizontal size
-    float hsize();
-    //gives the verticla size
-    float vsize();
+    float size();
     //get the number of points
     int npoints();
+    
+    //set the size
+    void set_size(float size);
     
     //set the x and y position in the 2 dimensional world
     void set_pos(float x, float y);
@@ -49,8 +50,7 @@ class Object {
   private:
     float x_;
     float y_;
-    float hsize_;
-    float vsize_;
+    float size_;
     float vx_;
     float vy_;
     float phi_; //angle in degree (°)
