@@ -120,7 +120,7 @@ int main( int argc, char* args[] ) {
     //collision detection
     Collision coll;
 
-    //simulation control
+		//simulation control
     bool quit = false;
 
     //constants for integration
@@ -133,7 +133,30 @@ int main( int argc, char* args[] ) {
     bool collision = false;
     float mtot = 0.0, mtot_save = 0.0;
 
-	//our event structure
+/*	new?
+		//game mechanics
+		bool quit = false;
+    bool firstcontact = true;
+    float x1 = 0, y1 = 0; //position of first contact
+    float x0, y0; //moon position
+    float x, y; //lander position
+    float vx, vy; //lander velocity
+    float r; //distance moon lander
+    bool destroyed = false; //if the lander is destroyed
+    bool collided = false;
+    bool initparts = true;
+
+    //constants for integration
+    //newtons constant of gravity
+    float gamma = 1e3;
+    //energy dissipation during flight (for example air drag)
+    float alpha = 0.0; //1e-4
+    //energy dissipation during landing
+    float beta = 0.0; //1e-3
+    //strength of stilt springs
+    float omega = 1e-3;
+*/
+	//Our event structure
 	SDL_Event e;
 
 	while (!quit){

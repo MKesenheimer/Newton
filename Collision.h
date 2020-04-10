@@ -30,3 +30,7 @@ class Collision {
 };
 
 #endif
+
+// Look up, Scott Meyers Effectives modernes C++
+//std::shared_ptr<Class>
+//std::unique_ptr<Class>
