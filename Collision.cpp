@@ -26,7 +26,7 @@ float Collision::dist(const Object &o1, const Object &o2) {
 
 float Collision::dist(const Object &o, const Point &point) {
   Point cen = center(o);
-  float dist = sqrt(pow(cen[0] - point[0], 2.)+pow(cen[1] - point[1], 2.));
+  float dist = sqrt(pow(cen[0] - point[0], 2.) + pow(cen[1] - point[1], 2.));
   return dist;
 }
 
