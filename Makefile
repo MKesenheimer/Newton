@@ -6,7 +6,7 @@ COMPILER = g++
 
 ########################################################################
 ## Flags
-FLAGS   = -g -std=c++11
+FLAGS   = -g -std=c++17
 LDFLAGS =
 PREPRO  =
 ##verbose level 1
@@ -30,7 +30,7 @@ PARENTDIR  = $(WORKINGDIR)/..
 ########################################################################
 ## search for the files and set paths
 
-vpath %.cpp $(WORKINGDIR)
+vpath %.cpp $(WORKINGDIR) $(WORKINGDIR)/GameLibrary
 vpath %.m $(WORKINGDIR)
 vpath %.a $(WORKINGDIR)/build
 vpath %.o $(WORKINGDIR)/build
@@ -64,7 +64,7 @@ FRM = -framework Cocoa
 ## Linker files
 
 ### USER Files ###
-USER = Main.a Timer.a Object.a Star.a Functions.a Collision.a Solver.a
+USER = Main.a Object.a Star.a Collision.a Solver.a Renderer.a
 
 ########################################################################
 ## Rules
@@ -79,7 +79,7 @@ clean:
 	rm -f build/*.a Newton
 
 do:
-	make && ./Newton
+	make && cp GameLibrary/liblumax.so . && ./Newton
 
 ########################################################################
 #                       -*- End of Makefile -*-                        #

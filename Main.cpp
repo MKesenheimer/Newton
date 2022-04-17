@@ -10,50 +10,27 @@
 #include <SDL_image.h>
 #include <SDL2_gfxPrimitives.h>
 
-#include "typedefs.h"
-#include "Timer.h"
+#include "SDLTools/Utilities.h"
+#include "SDLTools/Timer.h"
+#include "GameLibrary/Collision.h"
+#include "GameLibrary/Solver.h"
+#include "GameLibrary/Renderer.h"
 #include "Star.h"
-#include "cleanup.h"
-#include "Functions.h"
-#include "Collision.h"
-#include "Solver.h"
 
-using namespace::std;
-
-const int SCREEN_WIDTH  = 900;
-const int SCREEN_HEIGHT = 800;
 const int BOX_WIDTH = 20;
 const int BOX_HEIGHT = 20;
 //Fps auf 20 festlegen
 const int FRAMES_PER_SECOND = 20;
 const int NSTARS = 500;
 
-//Log an SDL error with some error message to the output stream of our choice
-void logSDLError(std::ostream &os, const std::string &msg) {
-	os << msg << " error: " << SDL_GetError() << std::endl;
-}
-
-// Draw star to a SDL_Rederer
-void drawStar(Object *object, SDL_Renderer *ren) {
-  Point temp;
-  temp = object->get_point(1);
-  int size = (int)object->size();
-  for (int i=1; i < object->npoints(); i++) {
-    temp = object->get_point(i);
-    int xp = (int)(temp[0]);
-    int yp = (int)(temp[1]);
-    filledEllipseRGBA(ren, xp, yp, size, size, 0, 0, 0, 255);
-  }
-}
-
 int main( int argc, char* args[] ) {
-	int frame = 0; //take records of frame number
-	bool cap = true; //Framecap an oder ausschalten
+  int frame = 0; //take records of frame number
+  bool cap = true; //Framecap an oder ausschalten
 
   //Timer zum festlegen der FPS
-	Timer fps;
+  sdl::auxiliary::Timer fps;
   //Timer zum errechnen der weltweit vergangenen Zeit
-	Timer worldtime;
+  sdl::auxiliary::Timer worldtime;
   worldtime.start();
 
   //calculate the small time between two frames in ms
@@ -62,42 +39,39 @@ int main( int argc, char* args[] ) {
   int dt = 1;
 
   //initialize random generator
-  seed(time(NULL));
+  sdl::auxiliary::Utilities::seed(time(NULL));
 
-	//Start up SDL and make sure it went ok
-	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-		logSDLError(std::cout, "SDL_Init");
-		return 1;
-	}
+  //Start up SDL and make sure it went ok
+  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+    sdl::auxiliary::Utilities::logSDLError(std::cout, "SDL_Init");
+    return 1;
+  }
 
-	//Setup our window and renderer, this time let's put our window in the center
-	//of the screen
-	SDL_Window *window = SDL_CreateWindow("Newton", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-	if (window == NULL) {
-		logSDLError(std::cout, "CreateWindow");
-		SDL_Quit();
-		return 1;
-	}
+  //Setup our window and renderer, this time let's put our window in the center
+  //of the screen
+  SDL_Window *window = SDL_CreateWindow("Newton", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+  if (window == NULL) {
+    sdl::auxiliary::Utilities::logSDLError(std::cout, "CreateWindow");
+    SDL_Quit();
+    return 1;
+  }
 
-	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-	if (renderer == NULL) {
-		logSDLError(std::cout, "CreateRenderer");
-		cleanup(window);
-		SDL_Quit();
-		return 1;
-	}
+  SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+  if (renderer == NULL) {
+    sdl::auxiliary::Utilities::logSDLError(std::cout, "CreateRenderer");
+    sdl::auxiliary::Utilities::cleanup(window);
+    SDL_Quit();
+    return 1;
+  }
 
   //generate new objects
   std::vector<Star> stars;
   int nstars = NSTARS;
   for (int i = 0; i < nstars; i++) {
-    stars.push_back(Star(frand(0,SCREEN_WIDTH),frand(0,SCREEN_HEIGHT),frand(-1,1),frand(-1,1),frand(1,2)));
+    stars.push_back(Star(sdl::auxiliary::Utilities::frand(0,SCREEN_WIDTH),sdl::auxiliary::Utilities::frand(0,SCREEN_HEIGHT),sdl::auxiliary::Utilities::frand(-1,1),sdl::auxiliary::Utilities::frand(-1,1),sdl::auxiliary::Utilities::frand(1,2)));
   }
 
-  //collision detection
-  Collision coll;
-
-	//simulation control
+  //simulation control
   bool quit = false;
 
   //constants for integration
@@ -110,26 +84,26 @@ int main( int argc, char* args[] ) {
   bool collision = false;
   float mtot = 0.0, mtot_save = 0.0;
 
-	//Our event structure
-	SDL_Event e;
+  //Our event structure
+  SDL_Event e;
 
-	while (!quit) {
+  while (!quit) {
     //start the fps timer
     fps.start();
 
-		//Read any events that occured, for now we'll just quit if any event occurs
-		while (SDL_PollEvent(&e)) {
-			//If user closes the window
-			if (e.type == SDL_QUIT) {
-				quit = true;
-			}
-			//If user presses any key
-			if (e.type == SDL_KEYDOWN) {
-				if( e.key.keysym.sym == SDLK_c ) {
+    //Read any events that occured, for now we'll just quit if any event occurs
+    while (SDL_PollEvent(&e)) {
+      //If user closes the window
+      if (e.type == SDL_QUIT) {
+        quit = true;
+      }
+      //If user presses any key
+      if (e.type == SDL_KEYDOWN) {
+        if( e.key.keysym.sym == SDLK_c ) {
           cap = !cap;
-				}
-			}
-		}
+        }
+      }
+    }
 
     for (int i = 0; i < nstars; i++) {
       //mechanics
@@ -140,6 +114,8 @@ int main( int argc, char* args[] ) {
       vyi = stars[i].vy();
       // mass of the star, TODO: move this to a function
       mi = pow(stars[i].R(), 3) * rho;
+
+      //std::cout << "xi = " << xi << std::endl;
 
       float s1 = 0., sx2 = 0., sy2 = 0.;
       for (int j = 0; j < nstars; j++) {
@@ -171,13 +147,13 @@ int main( int argc, char* args[] ) {
         float wwy = s1 / mi, bety = 0., aly = sy2 / mi;
         RungeKuttaSolver::step(wwy, bety, aly, dt, &yi, &vyi);
 
-        stars[i].set_v(vxi, vyi);
-        stars[i].set_pos(xi, yi);
+        stars[i].setv(vxi, vyi);
+        stars[i].setPos(xi, yi);
       }
 
-      //collision detection
+      // collision detection
       for (int j = i+1; j < nstars; j++) {
-        bool collision = coll.check_collision(stars[i], stars[j]);
+        collision = Collision::checkCollision(stars[i], stars[j]);
         //std::cout << collision << std::endl;
         if(collision) {
           float xj = stars[j].x();
@@ -194,11 +170,11 @@ int main( int argc, char* args[] ) {
             vxi = (mi * vxi + mj * vxj) / (mi + mj);
             vyi = (mi * vyi + mj * vyj) / (mi + mj);
             mi = mi + mj;
-            stars[i].set_pos(xi, yi);
-            stars[i].set_v(vxi, vyi);
+            stars[i].setPos(xi, yi);
+            stars[i].setv(vxi, vyi);
             float newR = pow(pow(stars[i].R(), 3.) + pow(stars[j].R(), 3.), 1/3.);
             //std::cout <<stars[i].R()<<" "<<stars[j].R()<<" "<< newR << std::endl;
-            stars[i].set_R(newR);
+            stars[i].setR(newR);
             stars.erase(stars.begin() + j);
             nstars--;
           }
@@ -207,67 +183,66 @@ int main( int argc, char* args[] ) {
       } 
 
       //mirrored boundaries
-      if(xi<=0) stars[i].set_pos(SCREEN_WIDTH,yi);
-      if(xi>=SCREEN_WIDTH) stars[i].set_pos(0,yi);
-      if(yi<=0) stars[i].set_pos(xi,SCREEN_HEIGHT);
-      if(yi>=SCREEN_HEIGHT) stars[i].set_pos(xi,0);
+      if(xi <= 0) stars[i].setPos(SCREEN_WIDTH, yi);
+      if(xi >= SCREEN_WIDTH) stars[i].setPos(0, yi);
+      if(yi <= 0) stars[i].setPos(xi, SCREEN_HEIGHT);
+      if(yi >= SCREEN_HEIGHT) stars[i].setPos(xi, 0);
     }
 
     //check total mass
     mtot_save = mtot;
     mtot = 0;
     for (int i = 0; i < nstars; i++) {
-      mtot += pow(stars[i].R(),3)*rho;
+      mtot += pow(stars[i].R(), 3)*rho;
     }
 
-    if(mtot_save != 0.0 and fabs(mtot_save-mtot)/mtot >= 0.001 ) {
+    if(mtot_save != 0.0 and fabs(mtot_save-mtot)/mtot >= 0.001) {
       std::cout << "Mass not conserved. Bug?" << std::endl;
       std::cout << "mtot_save = " << mtot_save << ", mtot = " << mtot << std::endl;
       exit(0);
     }
 
     //Rendering
-		SDL_RenderClear(renderer);
-		//Draw the background white
-    boxRGBA(renderer, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 255, 255, 255, 255);
+    SDL_RenderClear(renderer);
+    // Draw the background black
+    boxRGBA(renderer, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0, 255);
 
-    //draw the surface of the moon
+    // draw the particles
     for (int i = 0; i < nstars; i++) {
-      //stars[i].update_position(dt/50);
-      drawStar(&stars[i], renderer);
+      Renderer::drawObject(stars[i], renderer);
     }
 
-    //render
-		SDL_RenderPresent(renderer);
+    // render
+    SDL_RenderPresent(renderer);
     // Timer related stuff
     oldTime = newTime;
     newTime = worldtime.getTicks();
     if (newTime > oldTime) {
-      dt = (newTime - oldTime)/1000.; // small time between two frames in s
+      dt = (newTime - oldTime) / 1000.; // small time between two frames in s
     }
     if(dt == 0) dt = 1;
 
-    //increment the frame number
+    // increment the frame number
     frame++;
-    //apply the fps cap
-		if( (cap == true) && (fps.getTicks() < 1000/FRAMES_PER_SECOND) ) {
-			SDL_Delay( (1000/FRAMES_PER_SECOND) - fps.getTicks() );
-		}
+    // apply the fps cap
+    if((cap == true) && (fps.getTicks() < 1000/FRAMES_PER_SECOND)) {
+      SDL_Delay((1000 / FRAMES_PER_SECOND) - fps.getTicks());
+    }
 
     //update the window caption
-		if( worldtime.getTicks() > 1000 ) {
-			std::stringstream caption;
-			caption << "Newton, FPS = " << 1000.f*frame/worldtime.getTicks() << ", nstars = " << nstars;
-      SDL_SetWindowTitle(window,caption.str().c_str());
-			worldtime.start();
+    if( worldtime.getTicks() > 1000 ) {
+      std::stringstream caption;
+      caption << "Newton, FPS = " << 1000.f * frame / worldtime.getTicks() << ", nstars = " << nstars;
+      SDL_SetWindowTitle(window, caption.str().c_str());
+      worldtime.start();
       frame = 0;
-		}
-	}
+    }
+  }
 
-	//Destroy the various items
-	cleanup(renderer, window);
-	IMG_Quit();
-	SDL_Quit();
+  // Destroy the various items
+  sdl::auxiliary::Utilities::cleanup(renderer, window);
+  IMG_Quit();
+  SDL_Quit();
 
-	return 0;
+  return 0;
 }

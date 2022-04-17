@@ -2,17 +2,14 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-Star::Star(float x, float y, float vx, float vy, float R) : Object(x,y,vx,vy){
-  //points are defined
-  //in the object-own coordinate system
+Star::Star(float x, float y, float vx, float vy, float R) : Object(x, y, vx, vy){
   R_ = R;
-  new_point(0, 0);
-  set_size(R);
+  setSize(2 * R, 2 * R);
 }
 
-void Star::set_R(float R) {
+void Star::setR(float R) {
   R_ = R;
-  set_size(R);
+  setSize(2 * R, 2 * R);
 }
 
 float Star::R() {

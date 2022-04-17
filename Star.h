@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include "Object.h"
+#include "GameLibrary/Object.h"
 
 class Star : public Object {
   public:
@@ -9,7 +9,7 @@ class Star : public Object {
     Star(float x, float y, float vx, float vy, float size);
     
     float R();
-    void set_R(float R);
+    void setR(float R);
   private:
     float R_;
 };
