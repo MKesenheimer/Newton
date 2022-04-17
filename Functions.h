@@ -1,5 +1,4 @@
-#ifndef FUNCTIONS_H
-#define FUNCTIONS_H
+#pragma once
 
 #include <iostream>
 #include <stdlib.h>
@@ -22,5 +21,3 @@ void print(T t, Args ...args) {
 
 void seed(int n);
 float frand(float min, float max);
-
-#endif

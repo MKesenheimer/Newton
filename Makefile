@@ -64,7 +64,7 @@ FRM = -framework Cocoa
 ## Linker files
 
 ### USER Files ###
-USER = Main.a Timer.a Object.a Star.a Functions.a Collision.a
+USER = Main.a Timer.a Object.a Star.a Functions.a Collision.a Solver.a
 
 ########################################################################
 ## Rules

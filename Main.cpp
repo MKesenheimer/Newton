@@ -15,11 +15,14 @@
 #include "cleanup.h"
 #include "Functions.h"
 #include "Collision.h"
+#include "Solver.h"
 
 using namespace::std;
 
 const int SCREEN_WIDTH  = 900;
 const int SCREEN_HEIGHT = 800;
+const int BOX_WIDTH = 20;
+const int BOX_HEIGHT = 20;
 //Fps auf 20 festlegen
 const int FRAMES_PER_SECOND = 20;
 const int NSTARS = 500;
@@ -134,7 +137,8 @@ int main( int argc, char* args[] ) {
       yi = stars[i].y();
       vxi = stars[i].vx();
       vyi = stars[i].vy();
-      mi = pow(stars[i].R(),3)*rho;
+      // mass of the star, TODO: move this to a function
+      mi = pow(stars[i].R(), 3) * rho;
 
       float s1 = 0., sx2 = 0., sy2 = 0.;
       for (int j = 0; j < nstars; j++) {
@@ -145,11 +149,12 @@ int main( int argc, char* args[] ) {
 
           if(xi != xj and yi != yj) {
             float rij, mj;
-            mj = pow(stars[j].R(),3)*rho;
-            rij = sqrt(pow(xi-xj,2.)+pow(yi-yj,2.));
-            s1 += -gamma*mi*mj/pow(rij,3.);
-            sx2 += +gamma*mi*mj*xj/pow(rij,3.);
-            sy2 += +gamma*mi*mj*yj/pow(rij,3.);
+            // mass of the star, TODO: move this to a function
+            mj = pow(stars[j].R(), 3) * rho;
+            rij = sqrt(pow(xi - xj, 2.) + pow(yi - yj, 2.));
+            s1  += - gamma * mi * mj / pow(rij, 3.);
+            sx2 += + gamma * mi * mj * xj / pow(rij, 3.);
+            sy2 += + gamma * mi * mj * yj / pow(rij, 3.);
             collision = false;
           } else {
             collision = true;
@@ -158,45 +163,15 @@ int main( int argc, char* args[] ) {
       }
 
       if(!collision) {
-        // Runge-Kutta 4. Ordnung
         // löst lineare DGL der Form x'' = ww*x + bet*x' + al.
-        float wwx = s1/mi, betx = 0., alx = sx2/mi;
-        float k1[4], k2[4];
-        float vx = vxi;
-        float x = xi;
-        k1[0] = vx;
-        k2[0] = wwx*x + betx*vx + alx;
-        k1[1] = vx + 0.5*k2[0]*dt;
-        k2[1] = wwx*(x + 0.5*k1[0]*dt) + betx*(vx + 0.5*k2[0]*dt) + alx; //rho*(t+0.5*dt)+
-        k1[2] = vx + 0.5*k2[1]*dt;
-        k2[2] = wwx*(x + 0.5*k1[1]*dt) + betx*(vx + 0.5*k2[1]*dt) + alx; //rho*(t+0.5*dt)+
-        k1[3] = vx + k2[2]*dt;
-        k2[3] = wwx*(x + k1[2]*dt) + betx*(vx + k2[2]*dt) + alx; //rho*(t+dt)+
-        x  += dt*(1./6*k1[0] + 1./3*k1[1] + 1./3*k1[2] + 1./6*k1[3]);
-        vx += dt*(1./6*k2[0] + 1./3*k2[1] + 1./3*k2[2] + 1./6*k2[3]);
-        //ind->ax = ww*x+bet*vx+alx;
+        float wwx = s1 / mi, betx = 0., alx = sx2 / mi;
+        RungeKuttaSolver::step(wwx, betx, alx, dt, &xi, &vxi);
 
-        float wwy = s1/mi, bety = 0., aly = sy2/mi;
-        float vy = vyi;
-        float y = yi;
-        k1[0] = vy;
-        k2[0] = wwy*y + bety*vy + aly;
-        k1[1] = vy + 0.5*k2[0]*dt;
-        k2[1] = wwy*(y + 0.5*k1[0]*dt) + bety*(vy + 0.5*k2[0]*dt) + aly; //rho*(t+0.5*dt)+
-        k1[2] = vy + 0.5*k2[1]*dt;
-        k2[2] = wwy*(y + 0.5*k1[1]*dt) + bety*(vy + 0.5*k2[1]*dt) + aly; //rho*(t+0.5*dt)+
-        k1[3] = vy + k2[2]*dt;
-        k2[3] = wwy*(y + k1[2]*dt) + bety*(vy + k2[2]*dt) + aly; //rho*(t+dt)+
-        y  += dt*(1./6*k1[0] + 1./3*k1[1] + 1./3*k1[2] + 1./6*k1[3]);
-        vy += dt*(1./6*k2[0] + 1./3*k2[1] + 1./3*k2[2] + 1./6*k2[3]);
-        //ay = ww*y+bet*vy+aly;
+        float wwy = s1 / mi, bety = 0., aly = sy2 / mi;
+        RungeKuttaSolver::step(wwy, bety, aly, dt, &yi, &vyi);
 
-        vxi = vx;
-        vyi = vy;
-        xi = x;
-        yi = y;
-        stars[i].set_v(vxi,vyi);
-        stars[i].set_pos(xi,yi);
+        stars[i].set_v(vxi, vyi);
+        stars[i].set_pos(xi, yi);
       }
 
       //collision detection

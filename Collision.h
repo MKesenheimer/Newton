@@ -1,5 +1,4 @@
-#ifndef COLLISION_H
-#define COLLISION_H
+#pragma once
 
 #include <vector>
 #include "Object.h"
@@ -25,5 +24,3 @@ class Collision {
     float dist(Object *o1, std::vector<float> point);
     float dist(std::vector<float> point1, std::vector<float> point2);
 };
-
-#endif

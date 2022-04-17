@@ -1,5 +1,4 @@
-#ifndef STAR_H
-#define STAR_H
+#pragma once
 
 #include <vector>
 #include "Object.h"
@@ -14,5 +13,3 @@ class Star : public Object {
   private:
     float R_;
 };
-
-#endif

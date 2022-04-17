@@ -1,5 +1,4 @@
-#ifndef OBJECT_H
-#define OBJECT_H
+#pragma once
 
 #include <vector>
 
@@ -64,5 +63,3 @@ class Object {
     float spin_;
     std::vector<point> points; //points are defined in the object coordinate system
 };
-
-#endif
