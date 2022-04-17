@@ -7,8 +7,6 @@ class Object {
   public:
     //the constructor
     Object(float x, float y, float vx = 0, float vy = 0, float size = 1, float angle = 0, float spin = 0);
-    //the destructor
-    ~Object();
     
     //gives the x and y position in the 2 dimensional world
     float x();

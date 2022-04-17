@@ -11,9 +11,6 @@ class Star : public Object {
     
     float R();
     void set_R(float R);
-    
-    //the destructor
-    ~Star();
   private:
     float R_;
 };

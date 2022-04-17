@@ -5,10 +5,7 @@
 #include "Object.h"
 
 class Collision {
-  public:
-    Collision();
-    ~Collision();
-    
+  public:    
     //this function takes two lists of points and checks if the
     //the objects formed by the points has collided
     //Note: the points should form an convex object at best
@@ -30,7 +27,3 @@ class Collision {
 };
 
 #endif
-
-// Look up, Scott Meyers Effectives modernes C++
-//std::shared_ptr<Class>
-//std::unique_ptr<Class>

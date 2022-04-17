@@ -10,16 +10,15 @@ float getAngle(float x, float y);
 //easier print function
 template <typename T>
 void print(T t) {
-    std::cout << t << std::endl;
+  std::cout << t << std::endl;
 }
 
 //recursive variadic print function
 template<typename T, typename ...Args>
 void print(T t, Args ...args) {
-    std::cout << t;
-    print(args...);
+  std::cout << t;
+  print(args...);
 }
-
 
 void seed(int n);
 float frand(float min, float max);

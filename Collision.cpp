@@ -3,14 +3,6 @@
 #include <math.h>
 #include <iostream>
 
-Collision::Collision() {
-
-}
-
-Collision::~Collision() {
-
-}
-
 bool Collision::check_collision(Object *o1, Object *o2) {
   float dim1 = dim(o1);
   float dim2 = dim(o2);

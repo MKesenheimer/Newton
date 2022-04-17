@@ -151,7 +151,3 @@ void Object::update_position(float dt) {
   phi_ = phi_ + spin_*dt;
   set_angle(phi_);
 }
-
-Object::~Object() {
-
-}
