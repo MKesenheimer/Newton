@@ -4,12 +4,12 @@
 class Solver {
   public:
     Solver(float x0, float v0, float ww, float bet, float al);
-    
+
     void step(float dt, float* x, float* v);
 
   private:
     float x_, v_;
-    float ww_, bet_, al_;
+    const float ww_, bet_, al_;
 };
 
 class RungeKuttaSolver {

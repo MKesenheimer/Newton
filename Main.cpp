@@ -10,6 +10,7 @@
 #include <SDL_image.h>
 #include <SDL2_gfxPrimitives.h>
 
+#include "typedefs.h"
 #include "Timer.h"
 #include "Star.h"
 #include "cleanup.h"
@@ -34,7 +35,7 @@ void logSDLError(std::ostream &os, const std::string &msg) {
 
 // Draw star to a SDL_Rederer
 void drawStar(Object *object, SDL_Renderer *ren) {
-  std::vector<float> temp;
+  Point temp;
   temp = object->get_point(1);
   int size = (int)object->size();
   for (int i=1; i < object->npoints(); i++) {
@@ -176,26 +177,26 @@ int main( int argc, char* args[] ) {
 
       //collision detection
       for (int j = i+1; j < nstars; j++) {
-        bool collision = coll.check_collision(&stars[i],&stars[j]);
+        bool collision = coll.check_collision(stars[i], stars[j]);
         //std::cout << collision << std::endl;
         if(collision) {
           float xj = stars[j].x();
           float yj = stars[j].y();
           float vxj = stars[j].vx();
           float vyj = stars[j].vy();
-          float mj = pow(stars[j].R(),3.)*rho;
-          float vrel = pow(pow(vxi-vxj,2.)+pow(vyi-vyj,2.),.5);
+          float mj = pow(stars[j].R(), 3.) * rho;
+          float vrel = pow(pow(vxi - vxj, 2.) + pow(vyi - vyj, 2.), .5);
           //std::cout << "vrel = " << vrel << std::endl;
           //momentum conservation
           if(vrel <= vcrit) {
-            xi = (xi*mi+xj*mj)/(mi+mj);
-            yi = (yi*mi+yj*mj)/(mi+mj);
-            vxi = (mi*vxi + mj*vxj)/(mi+mj);
-            vyi = (mi*vyi + mj*vyj)/(mi+mj);
+            xi = (xi * mi + xj * mj) / (mi + mj);
+            yi = (yi * mi + yj * mj) / (mi + mj);
+            vxi = (mi * vxi + mj * vxj) / (mi + mj);
+            vyi = (mi * vyi + mj * vyj) / (mi + mj);
             mi = mi + mj;
-            stars[i].set_pos(xi,yi);
-            stars[i].set_v(vxi,vyi);
-            float newR = pow(pow(stars[i].R(),3.) + pow(stars[j].R(),3.),1/3.);
+            stars[i].set_pos(xi, yi);
+            stars[i].set_v(vxi, vyi);
+            float newR = pow(pow(stars[i].R(), 3.) + pow(stars[j].R(), 3.), 1/3.);
             //std::cout <<stars[i].R()<<" "<<stars[j].R()<<" "<< newR << std::endl;
             stars[i].set_R(newR);
             stars.erase(stars.begin() + j);

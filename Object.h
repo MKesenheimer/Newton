@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include "typedefs.h"
 
 class Object {
   public:
@@ -8,20 +9,24 @@ class Object {
     Object(float x, float y, float vx = 0, float vy = 0, float size = 1, float angle = 0, float spin = 0);
     
     //gives the x and y position in the 2 dimensional world
-    float x();
-    float y();
-    float xcenter();
-    float ycenter();
+    float x() const;
+    float y() const;
+    float xcenter() const;
+    float ycenter() const;
+
     //gives the velocity in x- and y-direction of the object
-    float vx();
-    float vy();
+    float vx() const;
+    float vy() const;
+
     //get the angle in respect to the y-axis
-    float phi();
-    float spin();
+    float phi() const;
+    float spin() const;
+
     //gives the horizontal size
-    float size();
+    float size() const;
+
     //get the number of points
-    int npoints();
+    int npoints() const;
     
     //set the size
     void set_size(float size);
@@ -40,7 +45,7 @@ class Object {
     //save a new coordinate and remember the index. iscol is used to determine
     //if point should be used for collision control
     void new_point(float x, float y, bool iscol = true);
-    std::vector<float> get_point(int n);
+    Point get_point(int n);
     bool is_collidable(int n);
     void modify_point(float x, float y, int n);
 
@@ -54,12 +59,11 @@ class Object {
     float old_phi_; 
     //whenever save_point() is called, we increment this numbers
     int npoints_;
-    struct point {
+    struct indexablePoint {
         int index;
-        float x;
-        float y;
+        Point p;
         bool iscollidable;
     };
     float spin_;
-    std::vector<point> points; //points are defined in the object coordinate system
+    std::vector<indexablePoint> points; //points are defined in the object coordinate system
 };
